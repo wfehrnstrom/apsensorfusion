@@ -1,5 +1,5 @@
 #include <Wire.h>
-#include "sensor_fusion.h";
+#include "sensor_fusion.h"
 
 #define PWR_MGMT_1 107
 #define GYRO_CONFIG 27
@@ -11,6 +11,26 @@
 
 void readAccelerometer(int *buf){
   
+}
+
+void readGyroscope(int *buf){
+  
+}
+
+bool readReady(){
+  uint8_t int_status[1];
+  readReg(INT_STATUS, int_status, 1);
+  // if the lsb of INT_STATUS has been set, then 
+  if(int_status[0] & (0b00000001) == 1){
+    return true;
+  }
+  return false;
+}
+
+void readIMU(int *buf){
+  if(readReady()){
+    
+  }
 }
 
 void setup(){
