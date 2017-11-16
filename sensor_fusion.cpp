@@ -2,14 +2,26 @@
 #include <Wire.h>
 #include "sensor_fusion.h"
 
+#define I2C_ADDRESS 0b110100X;//TODO: check what "AD0" is. It determines whether the least-significant bit of the I2C Address is 1 or 0.
+
 void readReg(uint8_t reg, uint8_t *buf, size_t len)
 {
-    // TODO: Implement
+  Wire.beginTransmission(I2C_ADDRESS);
+  Wire.write(reg);
+  Wire.endTransmission(false);
+  Wire.requestFrom(I2C_ADDRESS, len);
+  int received_len = Wire.available();
+  for (int i = 0; i < received_len; i++) {
+    buf[i] = Wire.read();
+  }
 }
 
 void writeReg(uint8_t reg, uint8_t *buf, size_t len)
 {
-    // TODO: Implement
+  Wire.beginTransmission(I2C_ADDRESS);
+  Wire.write(reg);
+  Wire.write(buf, len);
+  Wire.endTransmission();
 }
 
 float vector_normalize(struct vector *raw, struct vector *unit)
