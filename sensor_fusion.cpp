@@ -2,7 +2,7 @@
 #include <Wire.h>
 #include "sensor_fusion.h"
 
-#define I2C_ADDRESS 0b110100X;//TODO: check what "AD0" is. It determines whether the least-significant bit of the I2C Address is 1 or 0.
+#define I2C_ADDRESS 0b1101000
 
 void readReg(uint8_t reg, uint8_t *buf, size_t len)
 {
