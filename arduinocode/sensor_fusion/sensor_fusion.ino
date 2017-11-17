@@ -116,15 +116,16 @@ void loop() {
     readAccelAndGyro(true);
     theta += angular_accel*timePassed;
     quaternion_create(gyro_unit_ptr, theta, q_ptr);
-    vector gyroResult;
-    vector * gyro_result_ptr = &gyroResult;
-    quaternion_rotate(gyro_unit_ptr, q_ptr, gyro_result_ptr);
-    filtered_v = filter(0.6, acc_unit_ptr, gyro_result_ptr);
-    printUnit();
+    vector rotatedResult;
+    vector * rotated_result_ptr = &rotatedResult;
+    quaternion_rotate(gyro_unit_ptr, q_ptr, rotated_result_ptr);
+    
     //TODO: figure out a
+    filtered_v = filter(0.6, acc_unit_ptr, rotated_result_ptr);
+    printUnit();
 //  Serial.println("Accel: " + String(accel_x) + ", " + String(accel_y) + ", " + String(accel_z));
 //  Serial.println("Gyro: " + String(gyro_x) + ", " + String(gyro_y) + ", " + String(gyro_z));
-  delay(1000);
+    delay(1000);
 }
 void printUnit(){
   Serial.print(acc_unit.x);
@@ -156,12 +157,7 @@ bool readAccelAndGyro(bool correctForBias) {
     accel_x = (int)((accel_x_1_buf[0] << 8) | accel_x_2_buf[0]) / (float)(ACCEL_LSB_SENSITIVITY);
     accel_y = (int)((accel_y_1_buf[0] << 8) | accel_y_2_buf[0]) / (float)(ACCEL_LSB_SENSITIVITY);
     accel_z = (int)((accel_z_1_buf[0] << 8) | accel_z_2_buf[0]) / (float)(ACCEL_LSB_SENSITIVITY);
-    vector acc;
-    vector * acc_ptr = &acc;
-    acc.x = accel_x;
-    acc.y = accel_y;
-    acc.z = accel_z;
-    vector_normalize(acc_ptr, acc_unit_ptr);
+    
     readReg(GYRO_X_1, gyro_x_1_buf, 1);
     readReg(GYRO_X_2, gyro_x_2_buf, 1);
     readReg(GYRO_Y_1, gyro_y_1_buf, 1);
@@ -171,12 +167,7 @@ bool readAccelAndGyro(bool correctForBias) {
     gyro_x = (int)((gyro_x_1_buf[0] << 8) | gyro_x_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
     gyro_y = (int)((gyro_y_1_buf[0] << 8) | gyro_y_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
     gyro_z = (int)((gyro_z_1_buf[0] << 8) | gyro_z_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
-    vector gyro;
-    vector * gyro_ptr = &gyro;
-    gyro.x = gyro_x;
-    gyro.y = gyro_y;
-    gyro.z = gyro_z;
-    angular_accel = vector_normalize(gyro_ptr, gyro_unit_ptr);
+    
     if (correctForBias) {
       accel_x -= accel_x_bias;
       accel_y -= accel_y_bias;
@@ -185,6 +176,19 @@ bool readAccelAndGyro(bool correctForBias) {
       gyro_y -= gyro_y_bias;
       gyro_z -= gyro_z_bias;
     }
+    vector acc;
+    vector * acc_ptr = &acc;
+    acc.x = accel_x;
+    acc.y = accel_y;
+    acc.z = accel_z;
+    vector_normalize(acc_ptr, acc_unit_ptr);
+
+    vector gyro;
+    vector * gyro_ptr = &gyro;
+    gyro.x = gyro_x;
+    gyro.y = gyro_y;
+    gyro.z = gyro_z;
+    angular_accel = vector_normalize(gyro_ptr, gyro_unit_ptr);
     return true;
   }
   return false;
