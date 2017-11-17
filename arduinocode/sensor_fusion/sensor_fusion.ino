@@ -110,7 +110,7 @@ void setup(){
 
 void loop() {
     unsigned long curTime = millis();
-    unsigned long timePassed = curTime - lastTime;
+    unsigned long timePassed = (curTime - lastTime)/1000; //time in seconds
     
     //calculateBias();
     readAccelAndGyro(true);
