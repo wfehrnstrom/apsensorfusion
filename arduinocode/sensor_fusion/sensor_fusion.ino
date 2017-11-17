@@ -163,10 +163,23 @@ void calculateBias() {
   gyro_x_avg /= numSamples;
   gyro_y_avg /= numSamples;
   gyro_z_avg /= numSamples;
-  Serial.print("accel_x_bias = " + String(accel_x_avg) + ";");
-  Serial.print("accel_y_bias = " + String(accel_y_avg) + ";");
-  Serial.print("accel_z_bias = " + String(accel_z_avg-1) + ";");
-  Serial.print("gyro_x_bias = " + String(gyro_x_avg) + ";");
-  Serial.print("gyro_y_bias = " + String(gyro_y_avg) + ";");
-  Serial.print("gyro_z_bias = " + String(gyro_z_avg) + ";");
+  accel_x_bias = accel_x_avg;
+  accel_y_bias = accel_y_avg;
+  accel_z_bias = accel_z_avg - 1;
+  gyro_x_bias = gyro_x_avg;
+  gyro_y_bias = gyro_y_avg;
+  gyro_z_bias = gyro_z_avg;
+  Serial.println("accel_x_bias = " + String(accel_x_avg) + ";");
+  Serial.println("accel_y_bias = " + String(accel_y_avg) + ";");
+  Serial.println("accel_z_bias = " + String(accel_z_avg-1) + ";");
+  Serial.println("gyro_x_bias = " + String(gyro_x_avg) + ";");
+  Serial.println("gyro_y_bias = " + String(gyro_y_avg) + ";");
+  Serial.println("gyro_z_bias = " + String(gyro_z_avg) + ";");
+}
+
+void normalize(float &x, float &y, float &z){
+  double mag = sqrt(sq((double) x) + sq((double) y) + sq((double) z));
+  x /= mag;
+  y /= mag;
+  z /= mag;
 }
