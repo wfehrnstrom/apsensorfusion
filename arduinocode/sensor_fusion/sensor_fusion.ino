@@ -60,8 +60,10 @@ vector gyro_unit;
 vector * gyro_unit_ptr;
 vector acc_unit;
 vector * acc_unit_ptr;
+vector * filtered_v;
 quaternion q;
 quaternion * q_ptr;
+float theta = 0;
 float angular_accel;
 
 void readAccelerometer(int *buf) {
@@ -112,12 +114,14 @@ void loop() {
     
     //calculateBias();
     readAccelAndGyro(true);
-    float theta += angular_accel*timePassed;
-    quaternion_create(gyro_unit_ptr, theta, result);
+    theta += angular_accel*timePassed;
+    quaternion_create(gyro_unit_ptr, theta, q_ptr);
     vector gyroResult;
     vector * gyro_result_ptr = &gyroResult;
-    quaternion_rotate(gyro_unit_ptr, result, gyro_result_ptr);
+    quaternion_rotate(gyro_unit_ptr, q_ptr, gyro_result_ptr);
+    filtered_v = filter(0.6, acc_unit_ptr, gyro_result_ptr);
     printUnit();
+    //TODO: figure out a
 //  Serial.println("Accel: " + String(accel_x) + ", " + String(accel_y) + ", " + String(accel_z));
 //  Serial.println("Gyro: " + String(gyro_x) + ", " + String(gyro_y) + ", " + String(gyro_z));
   delay(1000);
@@ -134,6 +138,12 @@ void printUnit(){
   Serial.print(gyro_unit.y);
   Serial.print(" ");
   Serial.print(gyro_unit.z);
+  Serial.print(" ");
+  Serial.print((*filtered_v).x);
+  Serial.print(" ");
+  Serial.print((*filtered_v).y);
+  Serial.print(" ");
+  Serial.print((*filtered_v).z);
 }
 bool readAccelAndGyro(bool correctForBias) {
   if (readReady()) {
@@ -162,7 +172,7 @@ bool readAccelAndGyro(bool correctForBias) {
     gyro_y = (int)((gyro_y_1_buf[0] << 8) | gyro_y_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
     gyro_z = (int)((gyro_z_1_buf[0] << 8) | gyro_z_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
     vector gyro;
-    vector gyro_ptr = &gyro;
+    vector * gyro_ptr = &gyro;
     gyro.x = gyro_x;
     gyro.y = gyro_y;
     gyro.z = gyro_z;
@@ -212,5 +222,15 @@ void calculateBias() {
   Serial.print("gyro_x_bias = " + String(gyro_x_avg) + ";");
   Serial.print("gyro_y_bias = " + String(gyro_y_avg) + ";");
   Serial.print("gyro_z_bias = " + String(gyro_z_avg) + ";");
+}
+
+vector * filter(float a, vector * acc, vector * gyro){
+  vector_multiply(acc, a, acc);
+  vector_multiply(gyro, (1-a), gyro);
+  vector_add(acc, gyro, acc);
+  vector result;
+  vector * result_ptr = &result;
+  vector_normalize(acc, result_ptr);
+  return result_ptr;
 }
 
