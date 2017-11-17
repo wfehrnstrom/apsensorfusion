@@ -24,6 +24,9 @@
 #define GYRO_Z_1 71
 #define GYRO_Z_2 72
 
+#define ACCEL_LSB_SENSITIVITY 16384
+#define GYRO_LSB_SENSITIVITY 16.4
+
 uint8_t accel_x_1_buf[1];
 uint8_t accel_x_2_buf[1];
 uint8_t accel_y_1_buf[1];
@@ -37,12 +40,13 @@ uint8_t gyro_y_2_buf[1];
 uint8_t gyro_z_1_buf[1];
 uint8_t gyro_z_2_buf[1];
 
-int accel_x;
-int accel_y;
-int accel_z;
-int gyro_x;
-int gyro_y;
-int gyro_z;
+//TODO: Should we use double?
+float accel_x; // g's
+float accel_y;
+float accel_z;
+float gyro_x; // degrees/sec
+float gyro_y;
+float gyro_z;
 
 void readAccelerometer(int *buf) {
   
@@ -87,9 +91,9 @@ void loop() {
   readAccelAndGyro();
 //  Serial.println("Accel: " + String(accel_x) + ", " + String(accel_y) + ", " + String(accel_z));
   Serial.println("Gyro: " + String(gyro_x) + ", " + String(gyro_y) + ", " + String(gyro_z));
+  delay(200);
 }
 
-//TODO Values printed seem too big (~2^14 when staying still. That only leaves room for a max of 2g's, 2^15-1)
 void readAccelAndGyro() {
   if (readReady()) {
     readReg(ACCEL_X_1, accel_x_1_buf, 1);
@@ -98,9 +102,9 @@ void readAccelAndGyro() {
     readReg(ACCEL_Y_2, accel_y_2_buf, 1);
     readReg(ACCEL_Z_1, accel_z_1_buf, 1);
     readReg(ACCEL_Z_2, accel_z_2_buf, 1);
-    accel_x = (accel_x_1_buf[0] << 8) | accel_x_2_buf[0];
-    accel_y = (accel_y_1_buf[0] << 8) | accel_y_2_buf[0];
-    accel_z = (accel_z_1_buf[0] << 8) | accel_z_2_buf[0];
+    accel_x = (int)((accel_x_1_buf[0] << 8) | accel_x_2_buf[0]) / (float)(ACCEL_LSB_SENSITIVITY);
+    accel_y = (int)((accel_y_1_buf[0] << 8) | accel_y_2_buf[0]) / (float)(ACCEL_LSB_SENSITIVITY);
+    accel_z = (int)((accel_z_1_buf[0] << 8) | accel_z_2_buf[0]) / (float)(ACCEL_LSB_SENSITIVITY);
 
     readReg(GYRO_X_1, gyro_x_1_buf, 1);
     readReg(GYRO_X_2, gyro_x_2_buf, 1);
@@ -108,8 +112,8 @@ void readAccelAndGyro() {
     readReg(GYRO_Y_2, gyro_y_2_buf, 1);
     readReg(GYRO_Z_1, gyro_z_1_buf, 1);
     readReg(GYRO_Z_2, gyro_z_2_buf, 1);
-    gyro_x = (gyro_x_1_buf[0] << 8) | gyro_x_2_buf[0];
-    gyro_y = (gyro_y_1_buf[0] << 8) | gyro_y_2_buf[0];
-    gyro_z = (gyro_z_1_buf[0] << 8) | gyro_z_2_buf[0];
+    gyro_x = (int)((gyro_x_1_buf[0] << 8) | gyro_x_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
+    gyro_y = (int)((gyro_y_1_buf[0] << 8) | gyro_y_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
+    gyro_z = (int)((gyro_z_1_buf[0] << 8) | gyro_z_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
   }
 }
