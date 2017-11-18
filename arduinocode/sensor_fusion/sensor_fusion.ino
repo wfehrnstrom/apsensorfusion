@@ -48,14 +48,17 @@ float gyro_x; // degrees/sec
 float gyro_y;
 float gyro_z;
 
-float accel_x_bias;
-float accel_y_bias;
-float accel_z_bias;
-float gyro_x_bias;
-float gyro_y_bias;
-float gyro_z_bias;
+float accel_x_bias = 0.06;
+float accel_y_bias = -0.05;
+float accel_z_bias = 0.04;
+float gyro_x_bias = -1.28;
+float gyro_y_bias = -0.33;
+float gyro_z_bias = -2.17;
+
 
 unsigned long lastTime;
+vector gyro_axis;
+vector * gyro_axis_ptr;
 vector gyro_unit;
 vector * gyro_unit_ptr;
 vector acc_unit;
@@ -64,7 +67,7 @@ vector * filtered_v;
 quaternion q;
 quaternion * q_ptr;
 float theta = 0;
-float angular_accel;
+float angular_vel;
 
 void readAccelerometer(int *buf) {
   
@@ -87,6 +90,7 @@ bool readReady() {
 void setup(){
   Serial.begin(115200);
   Wire.begin();
+  gyro_unit.z = 1;
   acc_unit_ptr = &acc_unit;
   gyro_unit_ptr = &gyro_unit;
   q_ptr = &q;
@@ -110,29 +114,30 @@ void setup(){
 
 void loop() {
     unsigned long curTime = millis();
-    unsigned long timePassed = (curTime - lastTime)/1000; //time in seconds
+    float timePassed = (curTime - lastTime)/1000.0; //time in seconds
+    lastTime = curTime;
     
-    //calculateBias();
+//    calculateBias();
     readAccelAndGyro(true);
-    theta += angular_accel*timePassed;
-    quaternion_create(gyro_unit_ptr, theta, q_ptr);
+    theta = angular_vel*timePassed;
+    quaternion_create(gyro_axis_ptr, -theta, q_ptr);
     vector rotatedResult;
     vector * rotated_result_ptr = &rotatedResult;
     quaternion_rotate(gyro_unit_ptr, q_ptr, rotated_result_ptr);
-    
-    //TODO: figure out a
+//    
+//    //TODO: figure out a
     filtered_v = filter(0.6, acc_unit_ptr, rotated_result_ptr);
     printUnit();
 //  Serial.println("Accel: " + String(accel_x) + ", " + String(accel_y) + ", " + String(accel_z));
 //  Serial.println("Gyro: " + String(gyro_x) + ", " + String(gyro_y) + ", " + String(gyro_z));
-    delay(1000);
+    delay(200);
 }
 void printUnit(){
-  Serial.print(acc_unit.x);
+  Serial.print(acc_unit_ptr->x);
   Serial.print(" ");
-  Serial.print(acc_unit.y);
+  Serial.print(acc_unit_ptr->y);
   Serial.print(" ");
-  Serial.print(acc_unit.z);
+  Serial.print(acc_unit_ptr->z);
   Serial.print(" ");
   Serial.print(gyro_unit.x);
   Serial.print(" ");
@@ -145,9 +150,11 @@ void printUnit(){
   Serial.print((*filtered_v).y);
   Serial.print(" ");
   Serial.print((*filtered_v).z);
+  Serial.println();
 }
 bool readAccelAndGyro(bool correctForBias) {
   if (readReady()) {
+//    Serial.print("read ready!");
     readReg(ACCEL_X_1, accel_x_1_buf, 1);
     readReg(ACCEL_X_2, accel_x_2_buf, 1);
     readReg(ACCEL_Y_1, accel_y_1_buf, 1);
@@ -164,9 +171,9 @@ bool readAccelAndGyro(bool correctForBias) {
     readReg(GYRO_Y_2, gyro_y_2_buf, 1);
     readReg(GYRO_Z_1, gyro_z_1_buf, 1);
     readReg(GYRO_Z_2, gyro_z_2_buf, 1);
-    gyro_x = (int)((gyro_x_1_buf[0] << 8) | gyro_x_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
-    gyro_y = (int)((gyro_y_1_buf[0] << 8) | gyro_y_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
-    gyro_z = (int)((gyro_z_1_buf[0] << 8) | gyro_z_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY);
+    gyro_x = (int)((gyro_x_1_buf[0] << 8) | gyro_x_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY) * 3.14159265/180;
+    gyro_y = (int)((gyro_y_1_buf[0] << 8) | gyro_y_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY) * 3.14159265/180;
+    gyro_z = (int)((gyro_z_1_buf[0] << 8) | gyro_z_2_buf[0]) / (float)(GYRO_LSB_SENSITIVITY) * 3.14159265/180;
     
     if (correctForBias) {
       accel_x -= accel_x_bias;
@@ -178,9 +185,9 @@ bool readAccelAndGyro(bool correctForBias) {
     }
     vector acc;
     vector * acc_ptr = &acc;
-    acc.x = accel_x;
-    acc.y = accel_y;
-    acc.z = accel_z;
+    acc_ptr->x = accel_x;
+    acc_ptr->y = accel_y;
+    acc_ptr->z = accel_z;
     vector_normalize(acc_ptr, acc_unit_ptr);
 
     vector gyro;
@@ -188,7 +195,7 @@ bool readAccelAndGyro(bool correctForBias) {
     gyro.x = gyro_x;
     gyro.y = gyro_y;
     gyro.z = gyro_z;
-    angular_accel = vector_normalize(gyro_ptr, gyro_unit_ptr);
+    angular_vel = vector_normalize(gyro_ptr, gyro_axis_ptr);
     return true;
   }
   return false;
@@ -220,12 +227,12 @@ void calculateBias() {
   gyro_x_avg /= numSamples;
   gyro_y_avg /= numSamples;
   gyro_z_avg /= numSamples;
-  Serial.print("accel_x_bias = " + String(accel_x_avg) + ";");
-  Serial.print("accel_y_bias = " + String(accel_y_avg) + ";");
-  Serial.print("accel_z_bias = " + String(accel_z_avg-1) + ";");
-  Serial.print("gyro_x_bias = " + String(gyro_x_avg) + ";");
-  Serial.print("gyro_y_bias = " + String(gyro_y_avg) + ";");
-  Serial.print("gyro_z_bias = " + String(gyro_z_avg) + ";");
+  Serial.println("float accel_x_bias = " + String(accel_x_avg) + ";");
+  Serial.println("float accel_y_bias = " + String(accel_y_avg) + ";");
+  Serial.println("float accel_z_bias = " + String(accel_z_avg-1) + ";");
+  Serial.println("float gyro_x_bias = " + String(gyro_x_avg) + ";");
+  Serial.println("float gyro_y_bias = " + String(gyro_y_avg) + ";");
+  Serial.println("float gyro_z_bias = " + String(gyro_z_avg) + ";");
 }
 
 vector * filter(float a, vector * acc, vector * gyro){
